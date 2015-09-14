@@ -21,6 +21,8 @@
 
 import traceback
 
+from flask import current_app
+
 from .engine import WorkflowStatus
 from .errors import WorkflowError, WorkflowHalt
 from .models import ObjectVersion
@@ -80,6 +82,7 @@ def run_workflow(wfe, data, stop_on_halt=False,
         except Exception as exception_triggered:
             msg = "Error: %r\n%s" % \
                   (exception_triggered, traceback.format_exc())
+            current_app.logger.exception(exception_triggered)
             wfe.log.error(msg)
             current_obj = wfe.get_current_object()
             if current_obj:
