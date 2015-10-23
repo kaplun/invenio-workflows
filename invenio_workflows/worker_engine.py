@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # This file is part of Invenio.
-# Copyright (C) 2012, 2013, 2014 CERN.
+# Copyright (C) 2012, 2013, 2014, 2015 CERN.
 #
 # Invenio is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -207,12 +207,11 @@ def generate_snapshot(workflow_object, engine):
         initial_object = BibWorkflowObject.create_object_revision(
             workflow_object,
             id_workflow=engine.uuid,
-            version=workflow_object.version
+            version=workflow_object.version,
+            id_parent=workflow_object.id
         )
         initial_object.log.debug("Created new object revision: %s"
                                  % (initial_object.id,))
-        # Propagate the parent id
-        initial_object.id_parent = workflow_object.id
     else:
         # Ehm, this version does not exist.. ( magic or huge dev error,
         # surely the second one)
