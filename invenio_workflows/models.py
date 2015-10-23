@@ -632,9 +632,9 @@ class BibWorkflowObject(db.Model):
         """
         if delayed:
             from .api import start_delayed as start_func
+            self.save()
         else:
             from .api import start as start_func
-        self.save()
         return start_func(workflow_name, data=[self], **kwargs)
 
     def continue_workflow(self, start_point="continue_next",

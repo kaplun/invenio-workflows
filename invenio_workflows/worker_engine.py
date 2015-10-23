@@ -213,7 +213,6 @@ def generate_snapshot(workflow_object, engine):
                                  % (initial_object.id,))
         # Propagate the parent id
         initial_object.id_parent = workflow_object.id
-        workflow_object.save()
     else:
         # Ehm, this version does not exist.. ( magic or huge dev error,
         # surely the second one)
