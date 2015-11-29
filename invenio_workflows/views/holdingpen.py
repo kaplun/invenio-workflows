@@ -123,14 +123,14 @@ def index():
     Acts as a hub for catalogers (may be removed)
     """
     # TODO: Add user filtering
-    error_state = get_holdingpen_objects(
-        [ObjectVersion.name_from_version(ObjectVersion.ERROR)]
-    )
-    halted_state = get_holdingpen_objects(
-        [ObjectVersion.name_from_version(ObjectVersion.HALTED)]
-    )
-    return dict(error_state=error_state,
-                halted_state=halted_state)
+    error_state_total = get_holdingpen_objects(
+        tags_list=[ObjectVersion.name_from_version(ObjectVersion.ERROR)]
+    )[1]
+    halted_state_total = get_holdingpen_objects(
+        tags_list=[ObjectVersion.name_from_version(ObjectVersion.HALTED)]
+    )[1]
+    return dict(error_state_total=error_state_total,
+                halted_state_total=halted_state_total)
 
 
 @blueprint.route('/load', methods=['GET', 'POST'])
@@ -149,13 +149,17 @@ def load(page, per_page, sort_key):
     sort_key = request.args.get(
         'sort_key', session.get('holdingpen_sort_key', "modified")
     )
-    response = get_holdingpen_objects(tags, sort_key)
-    current_app.logger.debug(tags)
-    current_app.logger.debug(response)
-
     page = max(page, 1)
-    per_page = per_page or session.get('holdingpen_per_page') or 10
-    pagination = Pagination(page, per_page, len(response))
+    per_page = per_page or session.get('holdingpen_per_page') or 25
+
+    current_app.logger.debug(tags)
+    ids, total = get_holdingpen_objects(
+        tags_list=tags, per_page=per_page, page=page, sort_key=sort_key
+    )
+    current_app.logger.debug("Total hits: {0}".format(ids))
+    current_app.logger.debug(ids)
+
+    pagination = Pagination(page, per_page, total)
 
     # Make sure requested page is within limits.
     if pagination.page > pagination.pages:
@@ -182,20 +186,13 @@ def load(page, per_page, sort_key):
     }
 
     # Add current ids in table for use by previous/next
-    session['holdingpen_current_ids'] = response
+    session['holdingpen_current_ids'] = ids
     session['holdingpen_sort_key'] = sort_key
     session['holdingpen_per_page'] = per_page
+    session['holdingpen_page'] = page
     session['holdingpen_tags'] = tags
 
-    display_start = max(pagination.per_page * (pagination.page - 1), 0)
-    display_end = min(
-        pagination.per_page * pagination.page,
-        pagination.total_count
-    )
-
-    table_data["rows"] = get_rows(
-        response[display_start:display_end]
-    )
+    table_data["rows"] = get_rows(ids)
     table_data["rendered_rows"] = "".join(table_data["rows"])
     return jsonify(table_data)
 
@@ -223,10 +220,18 @@ def list_objects(tags_slug=None):
     sort_key = request.args.get(
         'sort_key', session.get('holdingpen_sort_key', "modified")
     )
+    page = request.args.get(
+        'page', session.get('holdingpen_page', 1)
+    )
+    per_page = request.args.get(
+        'per_page', session.get('holdingpen_per_page', 25)
+    )
     return render_template(
         'workflows/list.html',
         tags=json.dumps(tags_to_print),
-        object_list=get_holdingpen_objects(tags, sort_key),
+        total=get_holdingpen_objects(
+            tags_list=tags, per_page=per_page, page=page, sort_key=sort_key
+        )[1],
         type_list=get_data_types(),
         per_page=session.get('holdingpen_per_page')
     )
